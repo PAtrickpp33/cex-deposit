@@ -1027,6 +1027,494 @@ public void processDeposit(DepositTransaction deposit) {
 
 ---
 
+## Web3j 常用方法总结 / Web3j Common Methods Summary
+
+本项目使用了 Web3j 库进行以太坊区块链交互。以下是项目中使用的常用 Web3j 方法：
+
+This project uses the Web3j library for Ethereum blockchain interactions. The following are common Web3j methods used in this project:
+
+### 1. Web3j 客户端初始化 / Web3j Client Initialization
+
+#### 创建 Web3j 实例 / Create Web3j Instance
+
+```java
+// 使用 HTTP 服务创建 Web3j 客户端
+Web3j web3j = Web3j.build(new HttpService(rpcUrl));
+
+// 示例：连接到 Sepolia 测试网
+String rpcUrl = "https://sepolia.infura.io/v3/YOUR_PROJECT_ID";
+Web3j web3j = Web3j.build(new HttpService(rpcUrl));
+```
+
+**文件位置** / **File Location**: `config/Web3jConfig.java`
+
+---
+
+### 2. 密钥和凭证管理 / Key and Credential Management
+
+#### 生成密钥对 / Generate Key Pair
+
+```java
+// 使用 secp256k1 椭圆曲线算法生成密钥对
+ECKeyPair keyPair = Keys.createEcKeyPair();
+
+// 从密钥对创建凭证对象
+Credentials credentials = Credentials.create(keyPair);
+
+// 获取以太坊地址（公钥）
+String address = credentials.getAddress();
+
+// 获取私钥（BigInteger）
+BigInteger privateKey = keyPair.getPrivateKey();
+
+// 获取公钥（BigInteger）
+BigInteger publicKey = keyPair.getPublicKey();
+```
+
+**文件位置** / **File Location**: `service/WalletService.java`
+
+#### 从私钥创建凭证 / Create Credentials from Private Key
+
+```java
+// 从私钥字符串创建密钥对
+BigInteger privateKeyBigInt = Numeric.toBigInt(privateKeyHex);
+ECKeyPair keyPair = ECKeyPair.create(privateKeyBigInt);
+
+// 创建凭证
+Credentials credentials = Credentials.create(keyPair);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+---
+
+### 3. 区块查询 / Block Queries
+
+#### 获取当前区块号 / Get Current Block Number
+
+```java
+BigInteger currentBlock = web3j.ethBlockNumber()
+    .send()
+    .getBlockNumber();
+```
+
+**文件位置** / **File Location**: `service/BlockchainService.java`
+
+#### 获取指定区块 / Get Block by Number
+
+```java
+// 创建区块参数
+DefaultBlockParameter blockParameter = DefaultBlockParameter.valueOf(blockNumber);
+
+// 获取区块（包含完整交易信息）
+EthBlock.Block block = web3j.ethGetBlockByNumber(blockParameter, true)
+    .send()
+    .getBlock();
+
+// 获取区块中的交易
+List<EthBlock.TransactionResult> transactions = block.getTransactions();
+```
+
+**文件位置** / **File Location**: `service/BlockchainService.java`
+
+#### 区块参数类型 / Block Parameter Types
+
+```java
+// 最新区块
+DefaultBlockParameterName.LATEST
+
+// 最早区块
+DefaultBlockParameterName.EARLIEST
+
+// 待确认区块
+DefaultBlockParameterName.PENDING
+
+// 指定区块号
+DefaultBlockParameter.valueOf(blockNumber)
+```
+
+---
+
+### 4. 交易查询 / Transaction Queries
+
+#### 获取交易收据 / Get Transaction Receipt
+
+```java
+// 通过交易哈希获取交易收据
+TransactionReceipt receipt = web3j.ethGetTransactionReceipt(transactionHash)
+    .send()
+    .getTransactionReceipt()
+    .orElse(null);
+
+// 从收据中获取信息
+String status = receipt.getStatus(); // "0x1" 成功, "0x0" 失败
+BigInteger blockNumber = receipt.getBlockNumber();
+BigInteger gasUsed = receipt.getGasUsed();
+List<EthLog.Log> logs = receipt.getLogs(); // 事件日志
+```
+
+**文件位置** / **File Location**: `service/BlockchainService.java`, `service/TransactionService.java`
+
+#### 获取账户余额 / Get Account Balance
+
+```java
+// 获取指定地址的余额（wei 单位）
+BigInteger balance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST)
+    .send()
+    .getBalance();
+
+// 转换为 ETH（使用 Convert 工具类）
+BigDecimal ethBalance = Convert.fromWei(balance.toString(), Convert.Unit.ETHER);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### 获取交易计数（Nonce）/ Get Transaction Count (Nonce)
+
+```java
+// 获取账户的 nonce（用于发送交易）
+BigInteger nonce = web3j.ethGetTransactionCount(address, DefaultBlockParameterName.LATEST)
+    .send()
+    .getTransactionCount();
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+---
+
+### 5. 交易发送 / Transaction Sending
+
+#### 获取 Gas 价格 / Get Gas Price
+
+```java
+BigInteger gasPrice = web3j.ethGasPrice()
+    .send()
+    .getGasPrice();
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### 创建原生 ETH 转账交易 / Create Native ETH Transfer Transaction
+
+```java
+// 创建原生 ETH 转账交易
+RawTransaction rawTransaction = RawTransaction.createEtherTransaction(
+    nonce,           // 交易序号
+    gasPrice,        // Gas 价格
+    gasLimit,        // Gas 限制（21000 for ETH transfer）
+    toAddress,       // 接收地址
+    amount           // 转账金额（wei 单位）
+);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### 创建智能合约调用交易 / Create Smart Contract Call Transaction
+
+```java
+// 创建智能合约调用交易
+RawTransaction rawTransaction = RawTransaction.createTransaction(
+    nonce,           // 交易序号
+    gasPrice,        // Gas 价格
+    gasLimit,        // Gas 限制
+    contractAddress, // 合约地址
+    encodedFunction  // 编码后的函数调用数据
+);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### 签名交易 / Sign Transaction
+
+```java
+// 使用凭证签名交易
+byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
+
+// 转换为十六进制字符串
+String hexValue = Numeric.toHexString(signedMessage);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### 发送原始交易 / Send Raw Transaction
+
+```java
+// 发送已签名的原始交易
+EthSendTransaction response = web3j.ethSendRawTransaction(hexValue)
+    .send();
+
+// 检查错误
+if (response.hasError()) {
+    throw new RuntimeException("Transaction failed: " + response.getError().getMessage());
+}
+
+// 获取交易哈希
+String transactionHash = response.getTransactionHash();
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+---
+
+### 6. 智能合约交互 / Smart Contract Interaction
+
+#### 编码函数调用 / Encode Function Call
+
+```java
+// 创建函数对象
+Function function = new Function(
+    "transfer",                    // 函数名
+    Arrays.asList(                 // 输入参数
+        new Address(toAddress),
+        new Uint256(amount)
+    ),
+    Collections.emptyList()        // 输出参数类型
+);
+
+// 编码函数调用
+String encodedFunction = FunctionEncoder.encode(function);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### 解码函数返回值 / Decode Function Return Value
+
+```java
+// 解码函数返回值
+List<Type> decoded = FunctionReturnDecoder.decode(
+    responseValue,           // 返回值（十六进制字符串）
+    function.getOutputParameters()
+);
+
+// 获取解码后的值
+Uint256 amount = (Uint256) decoded.get(0);
+BigInteger value = amount.getValue();
+```
+
+**文件位置** / **File Location**: `service/BlockchainService.java`
+
+#### 常用数据类型 / Common Data Types
+
+```java
+// 地址类型
+new Address(addressString)
+
+// 无符号整数类型
+new Uint256(bigIntegerValue)
+new Uint128(bigIntegerValue)
+new Uint64(bigIntegerValue)
+
+// 有符号整数类型
+new Int256(bigIntegerValue)
+
+// 布尔类型
+new Bool(booleanValue)
+
+// 字符串类型
+new Utf8String(stringValue)
+
+// 字节数组类型
+new Bytes32(byteArray)
+```
+
+---
+
+### 7. 工具类 / Utility Classes
+
+#### Numeric 工具类 / Numeric Utility
+
+```java
+// 十六进制字符串转 BigInteger
+BigInteger value = Numeric.toBigInt(hexString);
+
+// BigInteger 转十六进制字符串
+String hex = Numeric.toHexString(bigInteger);
+
+// 字节数组转十六进制字符串
+String hex = Numeric.toHexString(byteArray);
+
+// 十六进制字符串转字节数组
+byte[] bytes = Numeric.hexStringToByteArray(hexString);
+```
+
+**文件位置** / **File Location**: `service/TransactionService.java`
+
+#### Convert 工具类 / Convert Utility
+
+```java
+// Wei 转 ETH
+BigDecimal eth = Convert.fromWei(weiAmount.toString(), Convert.Unit.ETHER);
+
+// ETH 转 Wei
+BigInteger wei = Convert.toWei(ethAmount, Convert.Unit.ETHER).toBigInteger();
+
+// 其他单位
+Convert.Unit.GWEI    // Gwei
+Convert.Unit.SZABO   // Szabo
+Convert.Unit.FINNEY  // Finney
+```
+
+---
+
+### 8. 事件日志解析 / Event Log Parsing
+
+#### 解析 Transfer 事件 / Parse Transfer Event
+
+```java
+// ERC20 Transfer 事件签名
+String TRANSFER_EVENT_SIGNATURE = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+// 从交易收据中获取日志
+List<EthLog.Log> logs = receipt.getLogs();
+
+// 遍历日志查找 Transfer 事件
+for (EthLog.Log log : logs) {
+    // 检查事件签名（第一个 topic）
+    if (TRANSFER_EVENT_SIGNATURE.equals(log.getTopics().get(0))) {
+        // from 地址（第二个 topic，indexed）
+        String from = "0x" + log.getTopics().get(1).substring(26);
+        
+        // to 地址（第三个 topic，indexed）
+        String to = "0x" + log.getTopics().get(2).substring(26);
+        
+        // amount（data 字段）
+        String data = log.getData();
+        BigInteger amount = new BigInteger(data, 16);
+    }
+}
+```
+
+**文件位置** / **File Location**: `service/BlockchainService.java`
+
+---
+
+### 9. 常用方法总结表 / Common Methods Summary Table
+
+| 功能 / Function | 方法 / Method | 说明 / Description |
+|----------------|--------------|-------------------|
+| 初始化客户端 | `Web3j.build(HttpService)` | 创建 Web3j 客户端实例 |
+| 生成密钥对 | `Keys.createEcKeyPair()` | 生成椭圆曲线密钥对 |
+| 创建凭证 | `Credentials.create(ECKeyPair)` | 从密钥对创建凭证 |
+| 获取区块号 | `web3j.ethBlockNumber().send()` | 获取当前区块号 |
+| 获取区块 | `web3j.ethGetBlockByNumber()` | 获取指定区块信息 |
+| 获取余额 | `web3j.ethGetBalance()` | 获取账户余额 |
+| 获取 Nonce | `web3j.ethGetTransactionCount()` | 获取交易计数 |
+| 获取 Gas 价格 | `web3j.ethGasPrice().send()` | 获取当前 Gas 价格 |
+| 获取交易收据 | `web3j.ethGetTransactionReceipt()` | 获取交易收据 |
+| 发送原始交易 | `web3j.ethSendRawTransaction()` | 发送已签名的交易 |
+| 创建 ETH 交易 | `RawTransaction.createEtherTransaction()` | 创建原生 ETH 转账 |
+| 创建合约交易 | `RawTransaction.createTransaction()` | 创建合约调用交易 |
+| 签名交易 | `TransactionEncoder.signMessage()` | 签名交易 |
+| 编码函数 | `FunctionEncoder.encode()` | 编码函数调用 |
+| 解码返回值 | `FunctionReturnDecoder.decode()` | 解码函数返回值 |
+| 十六进制转换 | `Numeric.toBigInt()` / `Numeric.toHexString()` | 十六进制转换 |
+| 单位转换 | `Convert.fromWei()` / `Convert.toWei()` | Wei 和其他单位转换 |
+
+---
+
+### 10. 完整交易发送示例 / Complete Transaction Sending Example
+
+#### 发送原生 ETH / Send Native ETH
+
+```java
+// 1. 创建凭证
+ECKeyPair keyPair = ECKeyPair.create(Numeric.toBigInt(privateKey));
+Credentials credentials = Credentials.create(keyPair);
+
+// 2. 获取 nonce
+BigInteger nonce = web3j.ethGetTransactionCount(
+    credentials.getAddress(), 
+    DefaultBlockParameterName.LATEST
+).send().getTransactionCount();
+
+// 3. 获取 gas price
+BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+
+// 4. 创建交易
+RawTransaction rawTransaction = RawTransaction.createEtherTransaction(
+    nonce,
+    gasPrice,
+    BigInteger.valueOf(21000),  // Gas limit
+    toAddress,
+    amount  // Wei
+);
+
+// 5. 签名交易
+byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
+String hexValue = Numeric.toHexString(signedMessage);
+
+// 6. 发送交易
+EthSendTransaction response = web3j.ethSendRawTransaction(hexValue).send();
+String transactionHash = response.getTransactionHash();
+```
+
+#### 发送 ERC20 代币 / Send ERC20 Token
+
+```java
+// 1-3. 同上（创建凭证、获取 nonce、获取 gas price）
+
+// 4. 创建函数调用
+Function function = new Function(
+    "transfer",
+    Arrays.asList(
+        new Address(toAddress),
+        new Uint256(amount)
+    ),
+    Collections.emptyList()
+);
+
+// 5. 编码函数
+String encodedFunction = FunctionEncoder.encode(function);
+
+// 6. 创建交易
+RawTransaction rawTransaction = RawTransaction.createTransaction(
+    nonce,
+    gasPrice,
+    BigInteger.valueOf(65000),  // Gas limit for ERC20
+    tokenContractAddress,
+    encodedFunction
+);
+
+// 7-8. 签名并发送（同上）
+```
+
+---
+
+### 11. 错误处理 / Error Handling
+
+```java
+try {
+    EthSendTransaction response = web3j.ethSendRawTransaction(hexValue).send();
+    
+    if (response.hasError()) {
+        // 处理错误
+        RpcResponse.Error error = response.getError();
+        String errorMessage = error.getMessage();
+        int errorCode = error.getCode();
+        throw new RuntimeException("Transaction failed: " + errorMessage);
+    }
+    
+    // 成功
+    String transactionHash = response.getTransactionHash();
+} catch (Exception e) {
+    // 处理异常
+    logger.error("Error sending transaction", e);
+    throw e;
+}
+```
+
+---
+
+### 12. 最佳实践 / Best Practices
+
+1. **异步调用** / **Async Calls**: 对于大量查询，考虑使用异步方法
+2. **错误处理** / **Error Handling**: 始终检查 `hasError()` 并处理错误
+3. **Gas 估算** / **Gas Estimation**: 使用 `ethEstimateGas()` 估算 Gas 限制
+4. **交易确认** / **Transaction Confirmation**: 等待足够的确认数再确认交易成功
+5. **资源管理** / **Resource Management**: 使用完 Web3j 实例后关闭连接
+
+---
+
 ## 联系方式 / Contact
 
 如有问题，请提交 Issue。
