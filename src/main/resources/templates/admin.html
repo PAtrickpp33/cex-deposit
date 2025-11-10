@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Hot Wallet Management</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Dashboard</h1>
+            <div class="auth-section" id="authSection">
+                <div class="login-form" id="loginForm">
+                    <h2>Admin Login</h2>
+                    <input type="text" id="username" placeholder="Username" required>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <button onclick="login()">Login</button>
+                </div>
+            </div>
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span id="userName"></span>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="admin-section" id="adminSection" style="display: none;">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('users')">Users</button>
+                <button class="tab-btn" onclick="showTab('wallets')">Hot Wallets</button>
+                <button class="tab-btn" onclick="showTab('transactions')">Transaction History</button>
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-content" id="usersTab">
+                <h2>Users Management</h2>
+                <div class="search-container">
+                    <input type="text" id="usersSearch" placeholder="Search by ID or Username..." onkeyup="searchUsers()">
+                    <button onclick="clearUsersSearch()">Clear</button>
+                </div>
+                <div class="table-container">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Wallets</th>
+                                <th>Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Wallets Tab -->
+            <div class="tab-content" id="walletsTab" style="display: none;">
+                <h2>Hot Wallets Management</h2>
+                <div class="search-container">
+                    <input type="text" id="walletsSearch" placeholder="Search by Wallet ID or Address..." onkeyup="searchWallets()">
+                    <button onclick="clearWalletsSearch()">Clear</button>
+                </div>
+                <div class="table-container">
+                    <table id="walletsTable">
+                        <thead>
+                            <tr>
+                                <th>Address</th>
+                                <th>User</th>
+                                <th>Chain</th>
+                                <th>Token</th>
+                                <th>Balance</th>
+                                <th>Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="walletsTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
+            <div class="tab-content" id="transactionsTab" style="display: none;">
+                <h2>Transaction History</h2>
+                <div class="search-container">
+                    <input type="text" id="transactionsSearch" placeholder="Search by Transaction ID or Hash..." onkeyup="searchTransactions()">
+                    <button onclick="clearTransactionsSearch()">Clear</button>
+                </div>
+                <div class="table-container">
+                    <table id="transactionsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tx Hash</th>
+                                <th>Wallet Address</th>
+                                <th>User ID</th>
+                                <th>Amount</th>
+                                <th>Token</th>
+                                <th>Status</th>
+                                <th>Confirmations</th>
+                                <th>Block</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody">
+                            <tr>
+                                <td colspan="11" style="text-align: center;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Details Modal -->
+    <div id="walletModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeWalletModal()">&times;</span>
+            <h2>Wallet Details</h2>
+            <div id="walletDetails">
+                <!-- Wallet details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Transaction Modal -->
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeTransactionModal()">&times;</span>
+            <h2>Send Transaction</h2>
+            <form id="transactionForm">
+                <div class="form-group">
+                    <label>From Address:</label>
+                    <input type="text" id="fromAddress" readonly>
+                </div>
+                <div class="form-group">
+                    <label>To Address:</label>
+                    <input type="text" id="toAddress" required>
+                </div>
+                <div class="form-group">
+                    <label>Token:</label>
+                    <select id="tokenSelect">
+                        <option value="">ETH (Native)</option>
+                        <option value="0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984">USDT</option>
+                        <option value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">USDC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (ETH or Token):</label>
+                    <input type="number" id="amount" step="0.000001" required>
+                </div>
+                <button type="button" onclick="sendTransaction()">Send Transaction</button>
+            </form>
+        </div>
+    </div>
+
+    <script th:src="@{/js/admin.js}"></script>
+</body>
+</html>
+
